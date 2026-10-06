@@ -1,0 +1,26 @@
+name: Live smoke
+
+# OASA's API is frequently unavailable, and their DNS record has pointed at a
+# dead host. This job watches for that from the outside; it never gates a build.
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Report where DNS points
+        run: node -e "require('dns').resolve4('telematics.oasa.gr',(e,a)=>console.log(e?String(e):a.join(',')))"
+      - run: npm run test:live
